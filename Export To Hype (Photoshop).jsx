@@ -16,7 +16,7 @@
 
 /**
  * Copyright Max Ziebell 2022
- * v1.0.4
+ * v1.0.5
  */
 
 /*
@@ -29,6 +29,8 @@
  *       Added Hype Template export type,
  *       Simplified logo for slim Scrip UI image resource
  *       Added ImageOptim and ImageAlpha support
+ * 1.0.5 Fixed LayerSet regression, to allow bounds with transparency
+ *       Fixed rounding error in retina mode
  *
  */
 
@@ -36,7 +38,7 @@
 (function() {
 
 	/* @const */
-	const _version = '1.0.4'
+	const _version = '1.0.5'
 
 	// DIALOG
 	// ======
@@ -424,7 +426,7 @@
 			// scale is not disableRetina
 			if (!disableRetina) {
 				for (var prop in lb) {
-					lb[prop] = Math.round(parseInt(lb[prop] / 2));
+					lb[prop] = Math.round(parseInt(lb[prop]) / 2);
 				}
 			} else {
 				for (var prop in lb) {
@@ -683,8 +685,8 @@
 		activeDocument.activeLayer = layer;
 		duplicateLayerToNewDocument();
 
-		// merge if needed (layerSets etc.)
-		if (shouldMerge === true) {
+		// merge if needed (apart from layerSets etc.)
+		if (shouldMerge === true && layer.typename != 'LayerSet') {
 			activeDocument.artLayers.add();
 			activeDocument.mergeVisibleLayers();
 		}
