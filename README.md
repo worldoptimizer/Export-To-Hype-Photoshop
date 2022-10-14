@@ -1,6 +1,6 @@
-![Testimonial](https://playground.maxziebell.de/Hype/ExportToHype/ExportToHypePhotoshop.png)
-
 # Export To Hype (Photoshop Edition)
+
+![Testimonial](https://playground.maxziebell.de/Hype/ExportToHype/ExportToHypePhotoshop.jpg)
 
 This Photoshop script exports all top-level layers and groups to cropped PNG and JPEG files and creates a file usable in Tumult Hype 4 based on your Photoshop document.
 
