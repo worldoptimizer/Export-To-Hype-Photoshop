@@ -20,7 +20,7 @@ You can now access Export to Hype under `File → Export → Export to Hype`
 
 ### Additional tweaks
 
-End your top-level layer with the following notation to optimize output
+End your top-level layer name with the following commands to optimize output:
 
 | Command   | Description                                                    |
 |-----------|----------------------------------------------------------------|
@@ -29,4 +29,4 @@ End your top-level layer with the following notation to optimize output
 | .png\|16  | exports as PNG with 16 colors (requires ImageAlpha installed)  |
 | .png\|256 | exports as PNG with 256 colors (requires ImageAlpha installed) |
 
-Not adding anything defaults to `PNG`
+Not adding anything defaults to `png`
