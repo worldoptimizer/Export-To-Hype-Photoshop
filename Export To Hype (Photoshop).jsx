@@ -25,8 +25,8 @@
  * 1.0.1 Corrected MD5 hash, updates modification date
  * 1.0.2 Increased compatibility, numbering layer with same name
  * 1.0.3 Aspect ratio bug (sizeRatio)
- * 1.0.4 Released as Open Source (MIT),
- *       Added Hype Template export type,
+ * 1.0.4 Released as Open Source (MIT)
+ *       Added Hype Template export type
  *       Simplified logo for slim Script UI image resource
  *       Added ImageOptim and ImageAlpha support
  * 1.0.5 Fixed LayerSet regression, to allow bounds with transparency
