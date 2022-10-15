@@ -16,7 +16,7 @@
 
 /**
  * Copyright Max Ziebell 2022
- * v1.0.5
+ * v1.0.6
  */
 
 /*
@@ -27,10 +27,12 @@
  * 1.0.3 Aspect ratio bug (sizeRatio)
  * 1.0.4 Released as Open Source (MIT),
  *       Added Hype Template export type,
- *       Simplified logo for slim Scrip UI image resource
+ *       Simplified logo for slim Script UI image resource
  *       Added ImageOptim and ImageAlpha support
  * 1.0.5 Fixed LayerSet regression, to allow bounds with transparency
  *       Fixed rounding error in retina mode
+ * 1.0.6 Fixed bug by replacing the duplication method
+ *       Fixed bug that caused an invisible symbol in the library       
  *
  */
 
@@ -38,7 +40,7 @@
 (function() {
 
 	/* @const */
-	const _version = '1.0.5'
+	const _version = '1.0.6'
 
 	// DIALOG
 	// ======
@@ -193,7 +195,7 @@
 		dialogAbout.margins = 16;
 
 		var statictext1 = dialogAbout.add("statictext", undefined, undefined, { name: "statictext1", multiline: true });
-		statictext1.text = "This tool is put together by Max Ziebell, \nhttps://maxziebell.de, copyright 2020.\nInspired by work from Tomek Cejner, Damien van Holten and Joonas Paakko. Many thanks to Jonathan and Daniel from Tumult for support, testing and feedback.";
+		statictext1.text = "This tool is put together by Max Ziebell, \nhttps://maxziebell.de, copyright 2022.\nInspired by work from Tomek Cejner, Damien van Holten and Joonas Paakko. Many thanks to Jonathan and Daniel from Tumult for support, testing and feedback.";
 		statictext1.preferredSize.width = 300;
 
 		var statictext2 = dialogAbout.add("statictext", undefined, undefined, { name: "statictext2", multiline: true });
@@ -256,6 +258,8 @@
 	exportBtn.preferredSize.width = 150;
 	exportBtn.preferredSize.height = 30;
 	exportBtn.onClick = function() {
+		app.bringToFront();
+		
 		HypeLayerExporter({
 			disableRetina: disableRetina.value,
 			customSave: customSave.value,
@@ -263,6 +267,7 @@
 			onlyResources: exportType.children[2].value == true,
 			saveAsSymbol: exportType.children[1].value == true,
 		});
+		
 		dialog.close();
 	}
 	
@@ -345,9 +350,9 @@
 			}
 		} catch (e) {
 			if (onlyResources) {
-				alert("Export to Hype: Failed to create resource folder!");
+				alert("Export to Hype: Failed to create resource folder!", "Error", true);
 			} else {
-				alert("Export to Hype: Failed to create symbol folder!");
+				alert("Export to Hype: Failed to create symbol folder!", "Error", true);
 			}
 			return;
 		}
@@ -361,7 +366,7 @@
 		// create a copy of the current document
 		var docCopy = app.activeDocument.duplicate();
 		selectAnyLayer(app.activeDocument);
-
+		
 		// Export to Hype (basic version, flat export)
 		for (var i = 0; i < activeDocument.layers.length; i++) {
 			var layer = activeDocument.layers[i];
@@ -382,7 +387,7 @@
 				var saveData = saveLayer(layer, name, resourcesPath, true, shouldOptimize);
 				if (!onlyResources || !saveData.file) layerToPlist(layer, name, saveData);
 			} catch (e) {
-				alert("Export to Hype: Failed to export layer!" + '\n\n'+e.message);
+				alert("Export to Hype: Failed to export layer!" + '\n\n'+e.message, "Error", true);
 				return;
 			}
 		}
@@ -390,7 +395,7 @@
 		// save plist
 		if (!onlyResources) saveAsPlistFile(hypePath + '/data.plist', dataPlistString({
 			hypeName: docName,
-			saveAsSymbol: false,
+			saveAsSymbol: saveAsSymbol,
 			width: Math.round(parseInt(docWidth) / docRetinaScale),
 			height: Math.round(parseInt(docHeight) / docRetinaScale),
 			resources: resourcesStr,
@@ -470,12 +475,11 @@
 
 	};
 
-
-
 	/**
 	 * This function makes sure an art layer is selected
 	 *
 	 * @param {Object} el - The object containing layers.
+	 * @return {Object} selected layer
 	 */
 	function selectAnyLayer(el) {
 		for (var i = 0; i < el.layers.length; i++) {
@@ -483,9 +487,9 @@
 			if (layer.typename == 'ArtLayer') {
 				layer.selected = true;
 				activeDocument.activeLayer = layer;
-				break;
+				return layer;
 			} else if (layer.typename == 'LayerSet') {
-				selectAnyLayer(layer);
+				return selectAnyLayer(layer);
 			}
 		}
 	}
@@ -508,7 +512,7 @@
 			fileImageOptim.remove();
 			return installed;
 		} catch (e) {
-			alert("Export to Hype: Error checking if ImageOptim is installed");
+			alert("Export to Hype: Error checking if ImageOptim is installed", "Error", true);
 			return null;
 		}
 	}
@@ -531,7 +535,7 @@
 			fileImageAlpha.remove();
 			return installPath;
 		} catch (e) {
-			alert("Export to Hype: Error checking if ImageAlpha is installed");
+			alert("Export to Hype: Error checking if ImageAlpha is installed", "Error", true);
 			return null;
 		}
 	}
@@ -551,7 +555,7 @@
 			fileMD5.remove();
 			return md5;
 		} catch (e) {
-			alert("Export to Hype: Error calculating the md5 file hash");
+			alert("Export to Hype: Error calculating the md5 file hash", "Error", true);
 			return null;
 		}
 	}
@@ -571,7 +575,7 @@
 			webloc.execute();
 			webloc.remove();
 		} catch(e){
-			alert("Export to Hype: Error opening " + url);
+			alert("Export to Hype: Error opening " + url, "Error", true);
 			return null;
 		}
 	}
@@ -683,13 +687,24 @@
 
 		// activate layer and duplicate it
 		activeDocument.activeLayer = layer;
-		duplicateLayerToNewDocument();
-
+		
+		// create new document
+		var docRef = app.activeDocument;
+		var newDocRef = app.documents.add(docRef.width, docRef.height, 72, "tmp", NewDocumentMode.RGB, DocumentFill.TRANSPARENT);
+		
+		// duplicate layer to new document
+		app.activeDocument=docRef;
+		layer.duplicate(newDocRef);
+		app.activeDocument=newDocRef;
+		
 		// merge if needed (apart from layerSets etc.)
 		if (shouldMerge === true && layer.typename != 'LayerSet') {
 			activeDocument.artLayers.add();
 			activeDocument.mergeVisibleLayers();
 		}
+	
+		// set active layer	
+		activeDocument.activeLayer = activeDocument.layers[0]
 	
 		// remember layer bounds for PLIST laster
 		saveData.layerBounds = getLayerBounds(activeDocument.activeLayer);
@@ -734,7 +749,7 @@
 				}
 				
 			} catch (e) {
-				alert("Export to Hype: Failed to optimize image");
+				alert("Export to Hype: Failed to optimize image", "Error", true);
 			}
 		} else {
 			// run ImageAlpha for file if installed and user requested it
@@ -745,23 +760,6 @@
 
 		// return data
 		return saveData;
-	}
-	
-	/**
-	 * Unlock a layer.
-	 * 
-	 * @param  {Object} layer - The layer object.
-	 */
-	function unlockLayer(layer) {
-		var desc = new ActionDescriptor();
-		var ref = new ActionReference();
-		ref.putEnumerated(charIDToTypeID("Lyr "), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
-		desc.putReference(charIDToTypeID("null"), ref);
-		var idLyr = charIDToTypeID("Lyr ");
-		var idLckd = charIDToTypeID("Lckd");
-		var idtoggle = charIDToTypeID("toggle");
-		desc.putEnumerated(idLyr, idLckd, idtoggle);
-		executeAction(charIDToTypeID("setd"), desc, DialogModes.NO);
 	}
 
 	/**
@@ -794,23 +792,6 @@
 		sfwOptions.quality = jpegQuality;
 		app.activeDocument.exportDocument(saveFile, ExportType.SAVEFORWEB, sfwOptions);
 	}
-	
-	/**
-	 * Duplicate the active layer to a new document.
-	 *
-	 */
-	function duplicateLayerToNewDocument() {
-		var action0 = new ActionDescriptor();
-		var reference0 = new ActionReference();
-		reference0.putClass(charIDToTypeID('Dcmn'));
-		action0.putReference(charIDToTypeID('null'), reference0);
-		action0.putString(charIDToTypeID('Nm  '), activeDocument.activeLayer.name);
-		var reference1 = new ActionReference();
-		reference1.putEnumerated(charIDToTypeID('Lyr '), charIDToTypeID('Ordn'), charIDToTypeID('Trgt'));
-		action0.putReference(charIDToTypeID('Usng'), reference1);
-		executeAction(charIDToTypeID('Mk  '), action0, DialogModes.NO);
-	};
-
 
 	/**
 	 * This function gets the layer bounds (corrected to activeDocument)
@@ -842,7 +823,7 @@
 				 return [UnitValue(l, "px"), UnitValue(t, "px"), UnitValue(r, "px"), UnitValue(b, "px")];
 			 }
 		 } catch (e) {
-			 alert("Export to Hype: Failed to get layer bounds (" + e + ")");
+			 alert("Export to Hype: Failed to get layer bounds (" + e + ")", "Error", true);
 		 }
 	 }
 
