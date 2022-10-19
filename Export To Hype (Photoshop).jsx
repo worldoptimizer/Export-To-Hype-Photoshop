@@ -16,7 +16,7 @@
 
 /**
  * Copyright Max Ziebell 2022
- * v1.0.6
+ * v1.0.7
  */
 
 /*
@@ -32,7 +32,9 @@
  * 1.0.5 Fixed LayerSet regression, to allow bounds with transparency
  *       Fixed rounding error in retina mode
  * 1.0.6 Fixed bug by replacing the duplication method
- *       Fixed bug that caused an invisible symbol in the library       
+ *       Fixed bug that caused an invisible symbol in the library
+ * 1.0.7 Removed mdfind and assuming ImageOptim and ImageAlpha at fixed paths
+ *       Added option to set default or force colors reduction
  *
  */
 
@@ -40,7 +42,7 @@
 (function() {
 
 	/* @const */
-	const _version = '1.0.6'
+	const _version = '1.0.7'
 
 	// DIALOG
 	// ======
@@ -121,14 +123,15 @@
 		
 	// OPTIONS
 	// ==========
-	var imageAlphaPath = getImageAlphaPath();				
-	var canOptimize = isImageOptimInstalled();
+	var imageOptimPath = getImageOptimPath();
+	var canOptimize = imageOptimPath!==null;
 	var shouldOptimize = optionPanel.add("checkbox", undefined, undefined, { name: "shouldOptimize" });
-	shouldOptimize.helpTip = "Uncheck this if you don't want to use ImageOptim on your export (needs to be installed).";
-	shouldOptimize.text = "Run ImageOptim on exported files (lossless compression)";
-	shouldOptimize.alignment = ["left", "top"];
-	shouldOptimize.value = canOptimize;
-	shouldOptimize.enabled = canOptimize;
+		shouldOptimize.helpTip = "Uncheck this if you don't want to use ImageOptim on your export (needs to be installed).";
+		shouldOptimize.text = "Run ImageOptim on exported files (lossless compression)";
+		shouldOptimize.alignment = ["left", "top"];
+		shouldOptimize.value = canOptimize;
+		shouldOptimize.enabled = canOptimize;
+	
 	if (!canOptimize){
 		// OPTIMGROUP
 		// ==========
@@ -150,6 +153,70 @@
 			optimBtn.text = "ImageOptim";
 			optimBtn.onClick = function() {
 				openURL("https://imageoptim.com/");
+			} 
+	}
+	
+	// IMAGEALPHAGROUP
+	// ===============
+	var imageAlphaPath = getImageAlphaPath();
+	var canColorReduce = imageAlphaPath!==null;
+	
+	var shouldColorReduce = optionPanel.add("checkbox", undefined, undefined, { name: "shouldColorReduce" });
+	shouldColorReduce.helpTip = "Check to limit the number of colors used on PNG layers using ImageAlpha.";
+	shouldColorReduce.text = "Run ImageAlpha on tagged layers (color + size reduction)";
+	shouldColorReduce.alignment = ["left", "top"];
+	shouldColorReduce.value = canColorReduce;
+	shouldColorReduce.enabled = canColorReduce;
+	shouldColorReduce.onClick = function() {
+		imageAlphaGroup.enabled = !!this.value;
+	}
+	
+	if (canColorReduce) {
+		var imageAlphaGroup = optionPanel.add("group", undefined, {name: "imageAlphaGroup"}); 
+			imageAlphaGroup.orientation = "row"; 
+			imageAlphaGroup.alignChildren = ["left","center"]; 
+			imageAlphaGroup.spacing = 0; 
+			imageAlphaGroup.margins = [7,0,0,0];
+			
+		var colorReduceDivider = imageAlphaGroup.add("panel", undefined, undefined, {name: "colorReduceDivider"}); 
+			colorReduceDivider.alignment = "fill";
+				
+		var colorReduceText1 = imageAlphaGroup.add("statictext", undefined, undefined, {name: "colorReduceText1"}); 
+			colorReduceText1.text = "  "
+		
+		var colorReduceScopeDropDown = imageAlphaGroup.add("dropdownlist", undefined, undefined, {name: "colorReduceScopeDropDown", items: ['export of untagged', 'force export of all']}); 
+			colorReduceScopeDropDown.selection = 0;
+			
+		var colorReduceText2 = imageAlphaGroup.add("statictext", undefined, undefined, {name: "colorReduceText1"}); 
+		colorReduceText2.text = " layers with"
+		
+				
+		var colorReduceDropDown_array = ["truecolor","256 colors","128 colors","64 colors","32 colors","16 colors","8 colors","4 colors","2 colors"]; 
+		var colorReduceDropDown = imageAlphaGroup.add("dropdownlist", undefined, undefined, {name: "colorReduceDropDown", items: colorReduceDropDown_array}); 
+			colorReduceDropDown.selection = 0;
+	}
+	
+	if (!canColorReduce){
+		// OPTIMGROUP
+		// ==========
+		var colorReduceGroup = optionPanel.add("group", undefined, {name: "colorReduceGroup"}); 
+			colorReduceGroup.orientation = "row"; 
+			colorReduceGroup.alignChildren = ["left","center"]; 
+			colorReduceGroup.spacing = 10; 
+			colorReduceGroup.margins = [7,0,0,0]; 
+		
+		var colorReduceDivider = colorReduceGroup.add("panel", undefined, undefined, {name: "colorReduceDivider"}); 
+			colorReduceDivider.alignment = "fill";
+		
+		var colorReduceText = colorReduceGroup.add("statictext", undefined, undefined, {name: "optimText"}); 
+			colorReduceText.text = "  Install ImageAlpha to enable this feature"; 
+			colorReduceText.graphics.foregroundColor = colorReduceText.graphics.newPen(colorReduceText.graphics.PenType.SOLID_COLOR, [0.8, 0.8, 0.8], 1);
+			colorReduceText.graphics.font = "dialog:11";
+		
+		var colorReduceBtn = colorReduceGroup.add("button", undefined, undefined, {name: "colorReduceBtn"}); 
+			colorReduceBtn.text = "ImageAlpha";
+			colorReduceBtn.onClick = function() {
+				openURL("https://pngmini.com/");
 			} 
 	}
 	
@@ -258,16 +325,18 @@
 	exportBtn.preferredSize.width = 150;
 	exportBtn.preferredSize.height = 30;
 	exportBtn.onClick = function() {
-		app.bringToFront();
-		
+	
 		HypeLayerExporter({
 			disableRetina: disableRetina.value,
 			customSave: customSave.value,
 			shouldOptimize: shouldOptimize.value,
+			shouldColorReduce: shouldColorReduce.value, 
+			defaultColorReduce: canColorReduce? parseInt(colorReduceDropDown.selection.text) : null,
+			forceColorReduction: colorReduceScopeDropDown.selection.index == 1,
 			onlyResources: exportType.children[2].value == true,
 			saveAsSymbol: exportType.children[1].value == true,
 		});
-		
+	
 		dialog.close();
 	}
 	
@@ -295,6 +364,9 @@
 		var onlyResources = o.onlyResources || false;
 		var saveAsSymbol = o.saveAsSymbol;
 		var shouldOptimize = o.shouldOptimize;
+		var shouldColorReduce = o.shouldColorReduce;
+		var defaultColorReduce = o.defaultColorReduce;
+		var forceColorReduction = o.forceColorReduction;
 		var hypeExtension = saveAsSymbol? 'hypesymbol' : 'hypetemplate';
 
 		// check if we have a doc path (doc is saved)	
@@ -352,7 +424,7 @@
 			if (onlyResources) {
 				alert("Export to Hype: Failed to create resource folder!", "Error", true);
 			} else {
-				alert("Export to Hype: Failed to create symbol folder!", "Error", true);
+				alert("Export to Hype: Failed to create "+hypeExtension+" folder!", "Error", true);
 			}
 			return;
 		}
@@ -384,8 +456,20 @@
 
 			//try to save the layer
 			try {
-				var saveData = saveLayer(layer, name, resourcesPath, true, shouldOptimize);
-				if (!onlyResources || !saveData.file) layerToPlist(layer, name, saveData);
+				var saveData = saveLayer(
+					layer,
+					name,
+					resourcesPath,
+					shouldOptimize,
+					shouldColorReduce,
+					defaultColorReduce,
+					forceColorReduction
+				);
+				
+				// store layer to PLIST if not only resources and we have a file
+				if (!onlyResources || !saveData.file) {
+					layerToPlist(layer, name, saveData);
+				}
 			} catch (e) {
 				alert("Export to Hype: Failed to export layer!" + '\n\n'+e.message, "Error", true);
 				return;
@@ -474,6 +558,107 @@
 		}
 
 	};
+	
+	
+	
+	/**
+	 * Save a layer as a file.
+	 * 
+	 * @param  {Object} layer - The layer object.
+	 * @param  {String} lname - The layer name.
+	 * @param  {String} path - The path to output the file.
+	 * @param  {Boolean} shouldOptimize - Optimize the layer.
+	 * @param  {Boolean} shouldColorReduce - Reduce colors.
+	 * @param  {Number} defaultColorReduce - Number of colors.
+	 * @return {Object} The file object.
+	 */
+	function saveLayer(layer, lname, path, shouldOptimize, shouldColorReduce, defaultColorReduce, forceColorReduction) {
+		var saveData = {};
+	
+		// activate layer and duplicate it
+		activeDocument.activeLayer = layer;
+		
+		// create new document
+		var docRef = app.activeDocument;
+		var newDocRef = app.documents.add(docRef.width, docRef.height, 72, "tmp", NewDocumentMode.RGB, DocumentFill.TRANSPARENT);
+		
+		// duplicate layer to new document
+		app.activeDocument=docRef;
+		layer.duplicate(newDocRef);
+		app.activeDocument=newDocRef;
+		
+		// merge (apart from layerSets etc.)
+		if (layer.typename != 'LayerSet') {
+			activeDocument.artLayers.add();
+			activeDocument.mergeVisibleLayers();
+		}
+	
+		// set active layer	
+		activeDocument.activeLayer = activeDocument.layers[0]
+	
+		// remember layer bounds for PLIST laster
+		saveData.layerBounds = getLayerBounds(activeDocument.activeLayer);
+		saveData.layerBoundsAsObject = getLayerBoundsAsObject(activeDocument.activeLayer);
+		
+		// don't do trimming or cropping on backgrounds
+		if (!layer.isBackgroundLayer) {
+			if (layer.typename == 'LayerSet') {
+				activeDocument.crop(saveData.layerBounds);
+			} else {
+				activeDocument.trim(TrimType.TRANSPARENT, true, true, true, true);
+			}
+		}
+		
+		// try to save layer and close it
+		try {
+			if (getExtension(lname) === '.jpg') {
+				saveData.file = File(path + '/' + getFileName(lname));
+				saveAsOptimizedJPEG(saveData.file, getQualityOfJPG(lname));
+			} else {
+				saveData.file = File(path + '/' + getFileName(lname));
+				SavePNG(saveData.file);
+			}
+			app.activeDocument.close(SaveOptions.DONOTSAVECHANGES);
+	
+		} catch (e) {
+			return { error: e }
+		}
+		
+		// get quality of png (in case of jpg it defaults to null)
+		var qualityOfPNG = null;
+		// only determine if requested and is png
+		if (shouldColorReduce && getExtension(lname) === '.png') {
+			if (forceColorReduction) {
+				qualityOfPNG = defaultColorReduce || getQualityOfPNG(lname);
+			} else {
+				qualityOfPNG = getQualityOfPNG(lname) || defaultColorReduce;
+			}
+		}
+		
+		// do optimizations on image if requested
+		if (shouldOptimize){
+			try {
+				// run ImageAlpha for file if installed and user requested it and then transfer to ImageOptim
+				if (qualityOfPNG) {
+					system(imageAlphaPath+'/Contents/MacOS/pngquant '+qualityOfPNG+' "' + saveData.file.fsName + '" --skip-if-larger --force --ext .png && open -a ImageOptim "' + saveData.file.fsName + '"')	
+				// run only ImageOptim for file instead
+				} else {
+					system('open -a ImageOptim "' + saveData.file.fsName + '"');	
+				}
+				
+			} catch (e) {
+				alert("Export to Hype: Failed to optimize image", "Error", true);
+			}
+		} else {
+			// run ImageAlpha for file if installed and user requested it
+			if (qualityOfPNG) {
+				system(imageAlphaPath+'/Contents/MacOS/pngquant '+qualityOfPNG+' "' + saveData.file.fsName + '" --skip-if-larger --force --ext .png')	
+			}
+		}
+	
+		// return data
+		return saveData;
+	}
 
 	/**
 	 * This function makes sure an art layer is selected
@@ -496,21 +681,13 @@
 	
 	
 	/**
-	 * This function checks is ImageOptim is installed
+	 * This function gets the ImageAlpha path if it is installed
 	 *
-	 * @return {boolean} 
+	 * @return {String} 
 	 */
-	function isImageOptimInstalled() {
+	function getImageOptimPath() {
 		try {
-			system('mdfind -name "ImageOptim.app" > ' + Folder.temp + '/temp_imageoptim.txt');
-			var fileImageOptim = new File(Folder.temp + '/temp_imageoptim.txt');
-			fileImageOptim.open('r');
-			var installed = false;
-			while(!fileImageOptim.eof){
-				if (fileImageOptim.readln().match( /ImageOptim\.app$/)) installed =  true;
-			}
-			fileImageOptim.remove();
-			return installed;
+			return new Folder('/Applications/ImageOptim.app').exists? '/Applications/ImageOptim.app' : null;
 		} catch (e) {
 			alert("Export to Hype: Error checking if ImageOptim is installed", "Error", true);
 			return null;
@@ -524,16 +701,7 @@
 	 */
 	function getImageAlphaPath() {
 		try {
-			system('mdfind -name "ImageAlpha.app" > ' + Folder.temp + '/temp_imagealpha.txt');
-			var fileImageAlpha = new File(Folder.temp + '/temp_imagealpha.txt');
-			fileImageAlpha.open('r');
-			var installPath = '';
-			while(!fileImageAlpha.eof){
-				var line = fileImageAlpha.readln();
-				if (line.match( /ImageAlpha\.app$/)) installPath =  line;
-			}
-			fileImageAlpha.remove();
-			return installPath;
+			return new Folder('/Applications/ImageAlpha.app').exists? '/Applications/ImageAlpha.app' : null;
 		} catch (e) {
 			alert("Export to Hype: Error checking if ImageAlpha is installed", "Error", true);
 			return null;
@@ -672,95 +840,6 @@
 		return parseInt(result[3]);
 	}
 	
-	/**
-	 * Save a layer as a file.
-	 * 
-	 * @param  {Object} layer - The layer object.
-	 * @param  {String} lname - The layer name.
-	 * @param  {String} path - The path to output the file.
-	 * @param  {Boolean} shouldMerge - Merge the layer.
-	 * @param  {Boolean} shouldOptimize - Optimize the layer.
-	 * @return {Object} The file object.
-	 */
-	function saveLayer(layer, lname, path, shouldMerge, shouldOptimize) {
-		var saveData = {};
-
-		// activate layer and duplicate it
-		activeDocument.activeLayer = layer;
-		
-		// create new document
-		var docRef = app.activeDocument;
-		var newDocRef = app.documents.add(docRef.width, docRef.height, 72, "tmp", NewDocumentMode.RGB, DocumentFill.TRANSPARENT);
-		
-		// duplicate layer to new document
-		app.activeDocument=docRef;
-		layer.duplicate(newDocRef);
-		app.activeDocument=newDocRef;
-		
-		// merge if needed (apart from layerSets etc.)
-		if (shouldMerge === true && layer.typename != 'LayerSet') {
-			activeDocument.artLayers.add();
-			activeDocument.mergeVisibleLayers();
-		}
-	
-		// set active layer	
-		activeDocument.activeLayer = activeDocument.layers[0]
-	
-		// remember layer bounds for PLIST laster
-		saveData.layerBounds = getLayerBounds(activeDocument.activeLayer);
-		saveData.layerBoundsAsObject = getLayerBoundsAsObject(activeDocument.activeLayer);
-		
-		// don't do trimming or cropping on backgrounds
-		if (!layer.isBackgroundLayer) {
-			if (layer.typename == 'LayerSet') {
-				activeDocument.crop(saveData.layerBounds);
-			} else {
-				activeDocument.trim(TrimType.TRANSPARENT, true, true, true, true);
-			}
-		}
-		
-		// try to save layer and close it
-		try {
-			if (getExtension(lname) === '.jpg') {
-				saveData.file = File(path + '/' + getFileName(lname));
-				saveAsOptimizedJPEG(saveData.file, getQualityOfJPG(lname));
-			} else {
-				saveData.file = File(path + '/' + getFileName(lname));
-				SavePNG(saveData.file);
-			}
-			app.activeDocument.close(SaveOptions.DONOTSAVECHANGES);
-
-		} catch (e) {
-			return { error: e }
-		}
-		
-		// get quality of png (in case of jpg it defaults to null)
-		var qualityOfPNG = getQualityOfPNG(lname);
-		
-		// do optimizations on image if requested
-		if (shouldOptimize){
-			try {
-				// run ImageAlpha for file if installed and user requested it and then transfer to ImageOptim
-				if (imageAlphaPath && qualityOfPNG) {
-					system(imageAlphaPath+'/Contents/MacOS/pngquant '+qualityOfPNG+' "' + saveData.file.fsName + '" --skip-if-larger --force --ext .png && open -a ImageOptim "' + saveData.file.fsName + '"')	
-				// run only ImageOptim for file instead
-				} else {
-					system('open -a ImageOptim "' + saveData.file.fsName + '"');	
-				}
-				
-			} catch (e) {
-				alert("Export to Hype: Failed to optimize image", "Error", true);
-			}
-		} else {
-			// run ImageAlpha for file if installed and user requested it
-			if (imageAlphaPath && qualityOfPNG) {
-				system(imageAlphaPath+'/Contents/MacOS/pngquant '+qualityOfPNG+' "' + saveData.file.fsName + '" --skip-if-larger --force --ext .png')	
-			} 
-		}
-
-		// return data
-		return saveData;
-	}
 
 	/**
 	 * Saves the active document as a PNG file.
