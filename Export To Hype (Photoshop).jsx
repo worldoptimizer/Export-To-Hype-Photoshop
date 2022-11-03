@@ -1,22 +1,6 @@
-//@target photoshop
-// $.level = 2;
-
-/* 
-// BEGIN__HARVEST_EXCEPTION_ZSTRING
- 
-<javascriptresource>
-	<name>Export to Hype...</name>
-	<category>scriptexport</category>
-	<enableinfo>true</enableinfo>
-	<menu>export</menu>
-</javascriptresource>
-
-// END__HARVEST_EXCEPTION_ZSTRING
-*/
-
 /**
  * Copyright Max Ziebell 2022
- * v1.0.7
+ * v1.0.8
  */
 
 /*
@@ -35,8 +19,24 @@
  *       Fixed bug that caused an invisible symbol in the library
  * 1.0.7 Removed mdfind and assuming ImageOptim and ImageAlpha at fixed paths
  *       Added option to set default or force colors reduction
+ * 1.0.8 Fixed error when ImageAlpha wasn't installed
  *
  */
+ 
+ //@target photoshop
+ 
+ /* 
+ // BEGIN__HARVEST_EXCEPTION_ZSTRING
+  
+ <javascriptresource>
+	 <name>Export to Hype...</name>
+	 <category>scriptexport</category>
+	 <enableinfo>true</enableinfo>
+	 <menu>export</menu>
+ </javascriptresource>
+ // END__HARVEST_EXCEPTION_ZSTRING
+ */
+
 
 // IIFE begin
 (function() {
@@ -325,18 +325,20 @@
 	exportBtn.preferredSize.width = 150;
 	exportBtn.preferredSize.height = 30;
 	exportBtn.onClick = function() {
-	
-		HypeLayerExporter({
-			disableRetina: disableRetina.value,
-			customSave: customSave.value,
-			shouldOptimize: shouldOptimize.value,
-			shouldColorReduce: shouldColorReduce.value, 
-			defaultColorReduce: canColorReduce? parseInt(colorReduceDropDown.selection.text) : null,
-			forceColorReduction: colorReduceScopeDropDown.selection.index == 1,
-			onlyResources: exportType.children[2].value == true,
-			saveAsSymbol: exportType.children[1].value == true,
-		});
-	
+		try {
+			HypeLayerExporter({
+				disableRetina: disableRetina.value,
+				customSave: customSave.value,
+				shouldOptimize: shouldOptimize.value,
+				shouldColorReduce: shouldColorReduce.value, 
+				defaultColorReduce: canColorReduce? parseInt(colorReduceDropDown.selection.text) : null,
+				forceColorReduction: canColorReduce? colorReduceScopeDropDown.selection.index == 1 : false,
+				onlyResources: exportType.children[2].value == true,
+				saveAsSymbol: exportType.children[1].value == true,
+			});
+		} catch (e){
+			alert(e+" ("+e.line+")")
+		}
 		dialog.close();
 	}
 	
@@ -1000,7 +1002,6 @@ and replace the corresponding function above.
 */ 
 
 /*
-
 function dataPlistString(o){
 	var hypeName = o.hypeName;
 	var width = o.width;
@@ -1009,7 +1010,6 @@ function dataPlistString(o){
 	var groups = o.groups;
 	var elements = o.elements;
 	var showInResourceLibrary = o.saveAsSymbol? 'true' : 'false';
-
 	return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -1043,7 +1043,6 @@ function dataPlistString(o){
 			${resources}
 		</array>
 	</dict>		
-
 	<key>sceneContainers</key>
 	<array>
 		<dict>
@@ -1087,7 +1086,6 @@ function dataPlistString(o){
 			</array>
 		</dict>
 	</array>
-
 	<key>symbolDisplayMode</key>
 	<integer>0</integer>
 	<key>symbols</key>
@@ -1163,14 +1161,10 @@ function dataPlistString(o){
 </plist>
 `;
 }
-
-
-
 function groupPlistString (o){
 	var name = o.name;
 	var fileName = o.fileName;
 	var resourceId = o.resourceId;
-
 	return `
 			<dict>
 				<key>expanded</key>
@@ -1188,7 +1182,6 @@ function groupPlistString (o){
 			</dict>
 	`;
 }
-
 function resourcePlistString (o){
 	var name = o.name;
 	var fileName = o.fileName;
@@ -1197,7 +1190,6 @@ function resourcePlistString (o){
 	var resourceId = o.resourceId;
 	var modified = o.modified;
 	var md5 = o.md5;
-
 	return `
 			<dict>
 				<key>fileModificationDate</key>
@@ -1225,8 +1217,6 @@ function resourcePlistString (o){
 			</dict>
 	`;
 }
-
-
 function elementPlistString (o){
 	var resourceId = o.resourceId;
 	var name = o.name;
@@ -1239,9 +1229,7 @@ function elementPlistString (o){
 	var zIndex = o.zIndex;
 	var key = o.key;
 	var opacity = o.opacity;
-
 	var sizeRatio = Math.floor(o.originalWidth / o.originalHeight * 1000)/1000;
-
 	return `
 					<key>${key}</key>
 					<array>
