@@ -35,5 +35,5 @@ Not adding anything defaults to `png`
 
 Many thanks to my GitHub sponsors. For this project special thanks to Deutsche Presse Agentur (DPA, Infografik).
 
-If you are also considering to support it would be very much appreciated!
+If you are also considering to support my work, it would be very much appreciated!
 https://github.com/sponsors/worldoptimizer
