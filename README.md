@@ -30,3 +30,10 @@ End your top-level layer name with the following commands to optimize output:
 | .png\|256 | exports as PNG with 256 colors (requires ImageAlpha installed) |
 
 Not adding anything defaults to `png`
+
+---
+
+Many thanks to my GitHub sponsors. For this project special thanks to Deutsche Presse Agentur (DPA, Infografik).
+
+If you are also considering to support it would be very much appreciated!
+https://github.com/sponsors/worldoptimizer
