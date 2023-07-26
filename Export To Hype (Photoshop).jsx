@@ -1,6 +1,6 @@
 /**
- * Copyright Max Ziebell 2022
- * v1.0.8
+ * Copyright Max Ziebell 2023
+ * v1.0.9
  */
 
 /*
@@ -20,6 +20,7 @@
  * 1.0.7 Removed mdfind and assuming ImageOptim and ImageAlpha at fixed paths
  *       Added option to set default or force colors reduction
  * 1.0.8 Fixed error when ImageAlpha wasn't installed
+ * 1.0.9 Applied some minor changes I had patched locally while working with it
  *
  */
  
@@ -42,7 +43,7 @@
 (function() {
 
 	/* @const */
-	const _version = '1.0.7'
+	const _version = '1.0.9'
 
 	// DIALOG
 	// ======
@@ -382,6 +383,7 @@
 		// check for unique names
 		var uniqueNames = {};
 		for (var i = 0; i < activeDocument.layers.length; i++) {
+			if (!activeDocument.layers[i].visible) continue;
 			var name = getFileName(activeDocument.layers[i].name);
 			if (uniqueNames.hasOwnProperty(name)) {
 				alert('Export to Hype: The layer name "' + name + '" was at least used twice! This exporter requires unique top-level layer names.');
@@ -448,6 +450,9 @@
 
 			//skip if layer is not visible
 			if (!layer.visible) continue;
+
+			//skip layers that are in a clipping mask (Property is strangely/historically called grouped)
+			if (layer.grouped) continue;
 
 			//skip all layers not ArtLayer or LayerSet
 			if (layer.typename != 'ArtLayer' && layer.typename != 'LayerSet') continue;
@@ -806,7 +811,7 @@
 	function getFileName(name) {
 		var ext = getExtension(name)
 		var strippedName = name.split('.')[0];
-		strippedName = strippedName.replace(/[^a-zA-Z0-9\s-]/g, '');
+		strippedName = strippedName.replace(/[^a-zA-Z0-9\s-_]/g, '');
 		strippedName = strippedName.replace(/^\s+|\s+$/g, "");
 		strippedName = strippedName.replace(/\s+/g, '-');
 		//if (strippedName.length > 120) strippedName = strippedName.substring(0, 120);
